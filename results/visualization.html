@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cyclic AMP Discovery Pipeline — Results Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Manrope:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #04080f;
+  --s1: #080f1c;
+  --s2: #0c1526;
+  --border: #172035;
+  --border2: #1e2d47;
+  --cyan: #00d4ff;
+  --green: #00e676;
+  --purple: #b388ff;
+  --amber: #ffca28;
+  --orange: #ff7043;
+  --text: #dce8f5;
+  --muted: #4a5f7a;
+  --muted2: #2a3d58;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'Manrope', sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.6;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.035) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  z-index: 0;
+}
+.wrap { max-width: 1360px; margin: 0 auto; padding: 0 2rem 6rem; position: relative; z-index: 1; }
+
+/* HEADER */
+header {
+  padding: 3.5rem 0 2.5rem;
+  margin-bottom: 3rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 2rem;
+}
+.hdr-left .tag {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.hdr-left .tag::before {
+  content: '';
+  display: inline-block;
+  width: 6px; height: 6px;
+  background: var(--cyan);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+h1 {
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--text);
+}
+h1 span { color: var(--cyan); }
+.hdr-sub { margin-top: 0.75rem; font-size: 0.78rem; color: var(--muted); max-width: 480px; }
+.hdr-right {
+  display: flex;
+  gap: 1px;
+  background: var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.hm { background: var(--s1); padding: 1.2rem 1.6rem; text-align: center; }
+.hm .v { font-family: var(--mono); font-size: 1.8rem; font-weight: 600; color: var(--cyan); line-height: 1; display: block; }
+.hm .l { font-size: 0.55rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 0.3rem; display: block; }
+
+/* SECTION LABEL */
+.sec {
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.sec::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* PIPELINE */
+.pipeline {
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  margin-bottom: 3rem;
+}
+.pnode {
+  flex-shrink: 0;
+  background: var(--s1);
+  border: 1px solid var(--border2);
+  border-top: 2px solid var(--green);
+  padding: 1rem 1.2rem;
+  min-width: 130px;
+  position: relative;
+  transition: background 0.2s;
+}
+.pnode:first-child { border-radius: 6px 0 0 6px; }
+.pnode:last-child  { border-radius: 0 6px 6px 0; }
+.pnode + .pnode    { border-left: none; }
+.pnode:hover       { background: var(--s2); }
+.pnode .pn-num  { font-family: var(--mono); font-size: 0.5rem; color: var(--muted); letter-spacing: 0.15em; margin-bottom: 0.3rem; }
+.pnode .pn-name { font-size: 0.7rem; font-weight: 700; line-height: 1.3; }
+.pnode .pn-out  { font-family: var(--mono); font-size: 0.5rem; color: var(--cyan); margin-top: 0.4rem; }
+.pnode .pn-check { position: absolute; top: 0.55rem; right: 0.65rem; font-size: 0.6rem; color: var(--green); }
+.parr {
+  flex-shrink: 0; width: 0; height: 0;
+  border-top: 20px solid transparent;
+  border-bottom: 20px solid transparent;
+  border-left: 11px solid var(--border2);
+  align-self: center; z-index: 2;
+}
+
+/* STAT CARDS */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 2.5rem;
+}
+.sc {
+  background: var(--s1);
+  padding: 1.2rem 1.1rem;
+  position: relative;
+  cursor: default;
+  transition: background 0.2s;
+}
+.sc:hover { background: var(--s2); }
+.sc::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--ac, var(--cyan)); }
+.sc .sv { font-family: var(--mono); font-size: 1.55rem; font-weight: 600; color: var(--ac, var(--cyan)); line-height: 1; margin-bottom: 0.4rem; display: block; }
+.sc .sl { font-size: 0.56rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; line-height: 1.4; display: block; }
+
+/* HIGHLIGHT */
+.highlight {
+  background: rgba(0,212,255,0.03);
+  border: 1px solid rgba(0,212,255,0.2);
+  border-left: 3px solid var(--cyan);
+  border-radius: 6px;
+  padding: 1.4rem 1.6rem;
+  margin-bottom: 2.5rem;
+  display: flex;
+  gap: 2.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.hl-label { font-size: 0.56rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 0.3rem; }
+.hl-val { font-family: var(--mono); font-size: 1rem; font-weight: 600; }
+.hl-val.gold  { color: var(--amber); }
+.hl-val.green { color: var(--green); }
+.hl-val.cyan  { color: var(--cyan);  }
+.hl-seq { font-family: var(--mono); font-size: 0.85rem; font-weight: 600; letter-spacing: 0.1em; color: var(--amber); }
+
+/* GRIDS */
+.g2  { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+.g3  { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+.g1  { margin-bottom: 1.5rem; }
+@media (max-width: 960px) { .g2, .g3 { grid-template-columns: 1fr; } }
+
+/* CARDS */
+.card { background: var(--s1); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; transition: border-color 0.2s; }
+.card:hover { border-color: var(--border2); }
+.card h3 { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 1.2rem; }
+.chart-wrap      { position: relative; height: 200px; }
+.chart-wrap.h240 { height: 240px; }
+.chart-wrap.h280 { height: 280px; }
+
+/* TABLE */
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th { font-family: var(--mono); font-size: 0.49rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+td { padding: 0.58rem 0.75rem; border-bottom: 1px solid rgba(23,32,53,0.7); vertical-align: middle; font-size: 0.7rem; }
+tr:hover td { background: rgba(0,212,255,0.02); }
+
+.aas { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.04em; }
+.aa-K, .aa-R, .aa-H { color: #64b5f6; }
+.aa-D, .aa-E { color: #ef9a9a; }
+.aa-C { color: #ffd54f; }
+.aa-F, .aa-W, .aa-Y { color: #ce93d8; }
+.aa-V, .aa-I, .aa-L, .aa-M { color: #a5d6a7; }
+.aa-G, .aa-A, .aa-P { color: #90a4ae; }
+.aa-S, .aa-T, .aa-N, .aa-Q { color: #fff59d; }
+
+.badge { font-family: var(--mono); font-size: 0.46rem; padding: 0.1rem 0.35rem; border-radius: 3px; margin-left: 0.28rem; vertical-align: middle; white-space: nowrap; }
+.b-cys   { background: rgba(255,213,79,.12);  color: #ffd54f;        border: 1px solid rgba(255,213,79,.3); }
+.b-agree { background: rgba(0,230,118,.1);    color: var(--green);   border: 1px solid rgba(0,230,118,.25); }
+.b-top   { background: rgba(0,212,255,.1);    color: var(--cyan);    border: 1px solid rgba(0,212,255,.25); }
+.b-div   { background: rgba(255,112,67,.1);   color: var(--orange);  border: 1px solid rgba(255,112,67,.25); }
+
+.rk { font-family: var(--mono); font-size: 0.56rem; font-weight: 600; width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
+.rk-1 { background: var(--amber); color: #000; }
+.rk-2 { background: #b0bec5; color: #000; }
+.rk-3 { background: #8d6e63; color: #fff; }
+.rk-o { background: var(--s2); color: var(--muted); border: 1px solid var(--border2); }
+
+.sbar { display: flex; align-items: center; gap: 0.45rem; }
+.sbar-num { font-family: var(--mono); font-size: 0.62rem; min-width: 46px; text-align: right; }
+.sbar-track { flex: 1; height: 3px; background: var(--border2); border-radius: 2px; min-width: 48px; }
+.sbar-fill  { height: 100%; border-radius: 2px; }
+
+.note-box { background: rgba(255,202,40,.04); border: 1px solid rgba(255,202,40,.2); border-radius: 6px; padding: 0.8rem 1.1rem; font-size: 0.68rem; color: var(--muted); margin-top: 1rem; line-height: 1.6; }
+.note-box strong { color: var(--amber); }
+
+footer { margin-top: 5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; font-family: var(--mono); font-size: 0.5rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="hdr-left">
+    <div class="tag">Chiral Blueprint Build Challenge 2026</div>
+    <h1>Cyclic <span>AMP</span> Discovery<br>Pipeline &mdash; Results</h1>
+    <p class="hdr-sub">DPO-aligned ProtGPT2 &nbsp;&middot;&nbsp; ESMFold structure prediction &nbsp;&middot;&nbsp; AMBER14/GBn2 physics validation</p>
+  </div>
+  <div class="hdr-right">
+    <div class="hm"><span class="v">1405</span><span class="l">Input seqs</span></div>
+    <div class="hm"><span class="v">281</span><span class="l">DPO pairs</span></div>
+    <div class="hm"><span class="v">50</span><span class="l">Generated</span></div>
+    <div class="hm"><span class="v">10</span><span class="l">Validated</span></div>
+  </div>
+</header>
+
+<div class="sec">Pipeline Architecture &mdash; 6/6 Nodes Complete</div>
+<div class="pipeline" id="pipeline"></div>
+
+<div class="sec">Key Metrics</div>
+<div class="stats" id="statCards"></div>
+
+<div class="sec">Featured Candidate &mdash; Largest Relaxation Energy</div>
+<div class="highlight">
+  <div>
+    <div class="hl-label">seq_32 &nbsp;&middot;&nbsp; Proxy rank #3 &nbsp;&middot;&nbsp; Physics rank #6</div>
+    <div class="hl-seq">S&middot;T&middot;C&middot;P&middot;S&middot;C&middot;C&middot;S&middot;P&middot;I&middot;R&middot;P&middot;H&middot;Q&middot;R&middot;F&middot;F&middot;C&middot;S</div>
+  </div>
+  <div><div class="hl-label">Delta-E Relaxation</div><div class="hl-val gold">&minus;6449.9 kJ/mol</div></div>
+  <div><div class="hl-label">E_final</div><div class="hl-val">&minus;2519.8 kJ/mol</div></div>
+  <div><div class="hl-label">pLDDT</div><div class="hl-val cyan">0.720</div></div>
+  <div><div class="hl-label">Cys count</div><div class="hl-val gold">4x Cys &mdash; disulfide scaffold candidate</div></div>
+  <div><div class="hl-label">Status</div><div class="hl-val green">&#10003; Largest delta-E in validated set</div></div>
+</div>
+
+<div class="sec">Score Distributions</div>
+<div class="g2">
+  <div class="card">
+    <h3>Original 1405 Sequences &mdash; Composite Score Distribution</h3>
+    <div class="chart-wrap"><canvas id="origHistChart"></canvas></div>
+  </div>
+  <div class="card">
+    <h3>DPO-Generated 50 Sequences &mdash; Score Distribution</h3>
+    <div class="chart-wrap"><canvas id="genHistChart"></canvas></div>
+  </div>
+</div>
+
+<div class="sec">Structural &amp; Biophysical Landscape</div>
+<div class="g2">
+  <div class="card">
+    <h3>pLDDT vs Proxy Score &mdash; All 50 Generated (green = physics-validated)</h3>
+    <div class="chart-wrap h240"><canvas id="scatterPlddt"></canvas></div>
+  </div>
+  <div class="card">
+    <h3>Hydrophobic Moment (muH) vs Net Charge &mdash; Membrane Activity Space</h3>
+    <div class="chart-wrap h240"><canvas id="scatterMuH"></canvas></div>
+  </div>
+</div>
+
+<div class="sec">Physics Validation &amp; DPO Alignment</div>
+<div class="g3">
+  <div class="card">
+    <h3>AMBER14 Energy &mdash; Top 10 Candidates</h3>
+    <div class="chart-wrap h280"><canvas id="energyChart"></canvas></div>
+  </div>
+  <div class="card">
+    <h3>Proxy Rank vs Physics Rank</h3>
+    <div class="chart-wrap h280"><canvas id="rankChart"></canvas></div>
+    <div class="note-box">
+      <strong>Spearman rho = 0.164, p = 0.65</strong> &mdash; weak correlation at n=10.
+      Significance requires rho &gt; 0.63 for p &lt; 0.05 at n=10.
+      Sample-size constraint, not model failure.
+    </div>
+  </div>
+  <div class="card">
+    <h3>DPO Preference Pair Margins &mdash; 281 Pairs</h3>
+    <div class="chart-wrap h280"><canvas id="marginChart"></canvas></div>
+  </div>
+</div>
+
+<div class="g1">
+  <div class="card">
+    <h3>N-to-C Terminus Distance (dist_nc) &mdash; Compact Fold Propensity</h3>
+    <div class="chart-wrap"><canvas id="distChart"></canvas></div>
+  </div>
+</div>
+
+<div class="sec">All 50 Generated Candidates &mdash; Ranked by Composite Score</div>
+<div class="card">
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>ID</th><th>Sequence</th>
+          <th>Score</th><th>pLDDT</th><th>dist_nc A</th>
+          <th>muH</th><th>Charge</th><th>Cys</th>
+          <th>Physics rank / E_final</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<footer>
+  <span>Saurav Kulkarni &nbsp;&middot;&nbsp; DPO-Aligned Cyclic AMP Discovery Pipeline &nbsp;&middot;&nbsp; Chiral Blueprint Build Challenge 2026</span>
+  <span>AMBER14 + GBn2 implicit solvent &nbsp;&middot;&nbsp; ESMFold &nbsp;&middot;&nbsp; ProtGPT2 DPO &nbsp;&middot;&nbsp; Apple M2 ~2hr</span>
+</footer>
+</div>
+
+<script>
+// =====================================================================
+// DATA
+// =====================================================================
+const PHYS = [{"id":"seq_39","sequence":"TTDASPTPPSGSPARPAASGRRL","proxy_score":3.390744,"plddt":0.7988,"dist_nc":37.44636,"muH":0.902389,"net_charge":0.32,"cys_count":0,"e_initial":462.94,"e_final":-3748.61,"delta_e":-4211.55,"rmsd":0.795,"n_atoms":486,"converged":true,"rank_proxy":1,"rank_physics":4},{"id":"seq_7","sequence":"DQQKIAILIDAENACQSRIDDVL","proxy_score":1.802938,"plddt":0.806522,"dist_nc":37.730186,"muH":0.590588,"net_charge":0.173913,"cys_count":1,"e_initial":228.8,"e_final":-4199.07,"delta_e":-4427.87,"rmsd":0.954,"n_atoms":421,"converged":true,"rank_proxy":2,"rank_physics":2},{"id":"seq_32","sequence":"STCPSCCSPIRPHQRFFCS","proxy_score":1.661463,"plddt":0.719565,"dist_nc":38.727547,"muH":0.581858,"net_charge":0.130435,"cys_count":4,"e_initial":3930.1,"e_final":-2519.75,"delta_e":-6449.86,"rmsd":0.984,"n_atoms":392,"converged":true,"rank_proxy":3,"rank_physics":6},{"id":"seq_27","sequence":"YLLFVLIFISLFLVLLYSIKNKK","proxy_score":1.423416,"plddt":0.793478,"dist_nc":39.268177,"muH":0.515118,"net_charge":0.217391,"cys_count":0,"e_initial":1489.44,"e_final":-2139.37,"delta_e":-3628.81,"rmsd":0.886,"n_atoms":423,"converged":true,"rank_proxy":4,"rank_physics":9},{"id":"seq_16","sequence":"EIHLLKSLSNILKISDKEILDLL","proxy_score":1.215447,"plddt":0.695652,"dist_nc":43.046345,"muH":0.493089,"net_charge":0.217391,"cys_count":0,"e_initial":1235.37,"e_final":-2472.62,"delta_e":-3707.98,"rmsd":0.937,"n_atoms":378,"converged":true,"rank_proxy":5,"rank_physics":7},{"id":"seq_48","sequence":"SASSSQATAAAATAAAANAAATAAAN","proxy_score":1.128213,"plddt":0.797727,"dist_nc":34.33389,"muH":0.461552,"net_charge":0.090909,"cys_count":0,"e_initial":777.67,"e_final":-2623.16,"delta_e":-3400.82,"rmsd":0.806,"n_atoms":328,"converged":true,"rank_proxy":6,"rank_physics":5},{"id":"seq_20","sequence":"HRTVRLAGASLAVLAAAAVPAAAGPAS","proxy_score":1.117104,"plddt":0.881739,"dist_nc":33.482204,"muH":0.440551,"net_charge":0.130435,"cys_count":0,"e_initial":1018.01,"e_final":-2472.3,"delta_e":-3490.31,"rmsd":0.712,"n_atoms":429,"converged":true,"rank_proxy":7,"rank_physics":8},{"id":"seq_25","sequence":"NRIVLLSFAILILACGSNKSNQ","proxy_score":0.776132,"plddt":0.742174,"dist_nc":41.40915,"muH":0.402444,"net_charge":0.086957,"cys_count":1,"e_initial":601.46,"e_final":-3916.34,"delta_e":-4517.8,"rmsd":1.143,"n_atoms":363,"converged":true,"rank_proxy":8,"rank_physics":3},{"id":"seq_0","sequence":"PTDPRARLRHLLEQDAPLAVAVD","proxy_score":0.762263,"plddt":0.737826,"dist_nc":30.248642,"muH":0.407061,"net_charge":-0.043478,"cys_count":0,"e_initial":-319.2,"e_final":-4590.83,"delta_e":-4271.63,"rmsd":0.923,"n_atoms":364,"converged":true,"rank_proxy":9,"rank_physics":1},{"id":"seq_37","sequence":"SKILIIEDEKDLRELLKYNLEFYGYES","proxy_score":0.737442,"plddt":0.799583,"dist_nc":47.7223,"muH":0.377155,"net_charge":0.208333,"cys_count":0,"e_initial":2438.71,"e_final":-1668.43,"delta_e":-4107.14,"rmsd":0.742,"n_atoms":411,"converged":true,"rank_proxy":10,"rank_physics":10}];
+
+const ALL50 = [{"id":"seq_39","sequence":"TTDASPTPPSGSPARPAASGRRL","net_charge":0.32,"muH":0.902389,"plddt":0.7988,"dist_nc":37.44636,"score":3.390744,"cys_count":0,"rank":1},{"id":"seq_7","sequence":"DQQKIAILIDAENACQSRIDDVL","net_charge":0.173913,"muH":0.590588,"plddt":0.806522,"dist_nc":37.730186,"score":1.802938,"cys_count":1,"rank":2},{"id":"seq_32","sequence":"STCPSCCSPIRPHQRFFCS","net_charge":0.130435,"muH":0.581858,"plddt":0.719565,"dist_nc":38.727547,"score":1.661463,"cys_count":4,"rank":3},{"id":"seq_27","sequence":"YLLFVLIFISLFLVLLYSIKNKK","net_charge":0.217391,"muH":0.515118,"plddt":0.793478,"dist_nc":39.268177,"score":1.423416,"cys_count":0,"rank":4},{"id":"seq_16","sequence":"EIHLLKSLSNILKISDKEILDLL","net_charge":0.217391,"muH":0.493089,"plddt":0.695652,"dist_nc":43.046345,"score":1.215447,"cys_count":0,"rank":5},{"id":"seq_48","sequence":"SASSSQATAAAATAAAANAAATAAAN","net_charge":0.090909,"muH":0.461552,"plddt":0.797727,"dist_nc":34.33389,"score":1.128213,"cys_count":0,"rank":6},{"id":"seq_20","sequence":"HRTVRLAGASLAVLAAAAVPAAAGPAS","net_charge":0.130435,"muH":0.440551,"plddt":0.881739,"dist_nc":33.482204,"score":1.117104,"cys_count":0,"rank":7},{"id":"seq_25","sequence":"NRIVLLSFAILILACGSNKSNQ","net_charge":0.086957,"muH":0.402444,"plddt":0.742174,"dist_nc":41.40915,"score":0.776132,"cys_count":1,"rank":8},{"id":"seq_0","sequence":"PTDPRARLRHLLEQDAPLAVAVD","net_charge":-0.043478,"muH":0.407061,"plddt":0.737826,"dist_nc":30.248642,"score":0.762263,"cys_count":0,"rank":9},{"id":"seq_37","sequence":"SKILIIEDEKDLRELLKYNLEFYGYES","net_charge":0.208333,"muH":0.377155,"plddt":0.799583,"dist_nc":47.7223,"score":0.737442,"cys_count":0,"rank":10},{"id":"seq_24","sequence":"SEGESGSSGDSNSSSGSSSNSSSSN","net_charge":-0.115385,"muH":0.39768,"plddt":0.707308,"dist_nc":53.059204,"score":0.666859,"cys_count":0,"rank":11},{"id":"seq_36","sequence":"ERHITHHKSIHTNRKHTKQ","net_charge":0.125,"muH":0.34628,"plddt":0.807083,"dist_nc":37.05503,"score":0.569734,"cys_count":0,"rank":12},{"id":"seq_9","sequence":"KTKSILSISLLLLCLFFSCTSQEKQE","net_charge":0.045455,"muH":0.312538,"plddt":0.795909,"dist_nc":34.402008,"score":0.369964,"cys_count":2,"rank":13},{"id":"seq_6","sequence":"SASSGEPSRKRPRLSDTLSSDSG","net_charge":0.095238,"muH":0.311154,"plddt":0.76381,"dist_nc":35.61917,"score":0.343391,"cys_count":0,"rank":14},{"id":"seq_29","sequence":"TSPLSLSALLRPRWLLLPALVLGAC","net_charge":0.227273,"muH":0.312537,"plddt":0.705,"dist_nc":44.46769,"score":0.324503,"cys_count":1,"rank":15},{"id":"seq_5","sequence":"SSSPDLAELRQKLLADPAVSEAVL","net_charge":0.12,"muH":0.286512,"plddt":0.7464,"dist_nc":38.94662,"score":0.208962,"cys_count":0,"rank":16},{"id":"seq_45","sequence":"MIRIMMIMMIRRMIGMMTMIRIT","net_charge":-0.083333,"muH":0.29153,"plddt":0.754583,"dist_nc":35.00887,"score":0.1914,"cys_count":0,"rank":17},{"id":"seq_18","sequence":"RWSRGAWPLVVLALVAGGCAGSD","net_charge":0.090909,"muH":0.280791,"plddt":0.721818,"dist_nc":35.271408,"score":0.148501,"cys_count":1,"rank":18},{"id":"seq_31","sequence":"KALLITAVLASLTGCIAVDRNYR","net_charge":-0.111111,"muH":0.246836,"plddt":0.908148,"dist_nc":8.649916,"score":0.114549,"cys_count":1,"rank":19},{"id":"seq_19","sequence":"ALTSPWVLAWVCVAVVVGGLVAR","net_charge":0.045455,"muH":0.255558,"plddt":0.763182,"dist_nc":34.969604,"score":0.052334,"cys_count":1,"rank":20},{"id":"seq_8","sequence":"HTSQTAWKRLLGIGVAGAALAI","net_charge":-0.043478,"muH":0.231497,"plddt":0.874348,"dist_nc":13.332929,"score":0.020965,"cys_count":0,"rank":21},{"id":"seq_41","sequence":"KTINILLALISLFLIACSSNKNKQ","net_charge":0.272727,"muH":0.233333,"plddt":0.702273,"dist_nc":21.31502,"score":-0.06288,"cys_count":1,"rank":22},{"id":"seq_49","sequence":"ASRSALLSLALGTLVLLAAGAAPAG","net_charge":0.038462,"muH":0.233587,"plddt":0.726538,"dist_nc":43.90732,"score":-0.095909,"cys_count":0,"rank":23},{"id":"seq_12","sequence":"HPSASLFSVLLLAFTSLTAAHPIQ","net_charge":0.0,"muH":0.196015,"plddt":0.904783,"dist_nc":31.65441,"score":-0.115142,"cys_count":0,"rank":24},{"id":"seq_15","sequence":"RRRFFPARFLLFFIFLFLPALAA","net_charge":0.0,"muH":0.190876,"plddt":0.883,"dist_nc":29.322697,"score":-0.162621,"cys_count":0,"rank":25},{"id":"seq_26","sequence":"KNLSVIFCVLLTTTMISCSKNE","net_charge":0.105263,"muH":0.246486,"plddt":0.576316,"dist_nc":17.431723,"score":-0.16494,"cys_count":2,"rank":26},{"id":"seq_34","sequence":"TCGSRWSTGTRRARPASRSSCS","net_charge":0.083333,"muH":0.220333,"plddt":0.671667,"dist_nc":41.49554,"score":-0.205834,"cys_count":2,"rank":27},{"id":"seq_28","sequence":"DRPQQGTRRSHGGPHREHRR","net_charge":0.227273,"muH":0.233848,"plddt":0.564091,"dist_nc":12.7048,"score":-0.209849,"cys_count":0,"rank":28},{"id":"seq_30","sequence":"KKIFFLLISLSFVFSCNDDDEINIPE","net_charge":0.210526,"muH":0.185907,"plddt":0.798421,"dist_nc":55.145355,"score":-0.219413,"cys_count":1,"rank":29},{"id":"seq_38","sequence":"KTISIITIFIILFTACDNKSQKK","net_charge":0.210526,"muH":0.222573,"plddt":0.584737,"dist_nc":15.68159,"score":-0.249767,"cys_count":1,"rank":30},{"id":"seq_40","sequence":"KACLLLICLLCCCAAAATAAAA","net_charge":0.173913,"muH":0.159032,"plddt":0.871739,"dist_nc":33.182743,"score":-0.289623,"cys_count":5,"rank":31},{"id":"seq_33","sequence":"KKILFVIIIILLSGCKIDYKKIK","net_charge":0.086957,"muH":0.191139,"plddt":0.678696,"dist_nc":44.474403,"score":-0.343873,"cys_count":1,"rank":32},{"id":"seq_2","sequence":"ATPITPAQRAAAVTALATAAGWD","net_charge":0.0,"muH":0.217225,"plddt":0.532083,"dist_nc":35.68739,"score":-0.38179,"cys_count":0,"rank":33},{"id":"seq_44","sequence":"KKKKKKSRSFWRFFFSFLLVLVLLL","net_charge":0.04,"muH":0.149396,"plddt":0.842,"dist_nc":38.602097,"score":-0.401022,"cys_count":0,"rank":34},{"id":"seq_22","sequence":"IFEFFRTIWFLIVGTFFWFG","net_charge":0.08,"muH":0.194139,"plddt":0.5976,"dist_nc":32.9702,"score":-0.411705,"cys_count":0,"rank":35},{"id":"seq_10","sequence":"RALLILCLLAPAWAAPATAPDAAS","net_charge":0.043478,"muH":0.180107,"plddt":0.673043,"dist_nc":38.693863,"score":-0.415551,"cys_count":1,"rank":36},{"id":"seq_13","sequence":"LKLLRLQFRALPSLLLALLLAGCQS","net_charge":0.074074,"muH":0.19811,"plddt":0.566667,"dist_nc":60.31232,"score":-0.424265,"cys_count":1,"rank":37},{"id":"seq_46","sequence":"TSPLARLPRLPARTRRGRWLAL","net_charge":0.043478,"muH":0.174208,"plddt":0.637391,"dist_nc":50.610226,"score":-0.480698,"cys_count":0,"rank":38},{"id":"seq_47","sequence":"PRDQHDPHDDEDHDDDPDADD","net_charge":-0.130435,"muH":0.145651,"plddt":0.720435,"dist_nc":22.062944,"score":-0.583919,"cys_count":0,"rank":39},{"id":"seq_1","sequence":"RAALTSAAGAALLAGCTARPASPS","net_charge":0.083333,"muH":0.155144,"plddt":0.588333,"dist_nc":49.57667,"score":-0.615113,"cys_count":1,"rank":40},{"id":"seq_11","sequence":"GKMKYQSIHFSTKHKCLSY","net_charge":0.043478,"muH":0.09434,"plddt":0.901304,"dist_nc":29.889471,"score":-0.616127,"cys_count":1,"rank":41},{"id":"seq_23","sequence":"KKLSILAVLISIVACGSKKDNKK","net_charge":0.043478,"muH":0.090365,"plddt":0.844783,"dist_nc":35.18502,"score":-0.692522,"cys_count":1,"rank":42},{"id":"seq_3","sequence":"QTQTKLLLVSFILSLIISCSSNN","net_charge":0.210526,"muH":0.102885,"plddt":0.707368,"dist_nc":51.523228,"score":-0.725576,"cys_count":1,"rank":43},{"id":"seq_4","sequence":"RRFSLLLFLLFLTSSCSSSNPSNT","net_charge":0.0,"muH":0.109979,"plddt":0.712917,"dist_nc":42.367825,"score":-0.737188,"cys_count":1,"rank":44},{"id":"seq_43","sequence":"ESFIRCSARFCRSCRAPRC","net_charge":0.0,"muH":0.058891,"plddt":0.967692,"dist_nc":37.37006,"score":-0.737854,"cys_count":4,"rank":45},{"id":"seq_35","sequence":"ASATTMRSPSSRTCRWPPGRAR","net_charge":0.045455,"muH":0.052265,"plddt":0.924091,"dist_nc":31.815376,"score":-0.803218,"cys_count":1,"rank":46},{"id":"seq_42","sequence":"KKILIILSLVILASCSPKHIKIKG","net_charge":-0.52381,"muH":0.126512,"plddt":0.634286,"dist_nc":41.903343,"score":-0.864106,"cys_count":1,"rank":47},{"id":"seq_14","sequence":"NRTIIIMFLICFTAFSCNKKE","net_charge":0.0,"muH":0.066719,"plddt":0.666667,"dist_nc":18.21196,"score":-0.999736,"cys_count":2,"rank":48},{"id":"seq_21","sequence":"KYERIILGLLNEGTLTGYDLSKAF","net_charge":0.2,"muH":0.040097,"plddt":0.7135,"dist_nc":52.076935,"score":-1.036015,"cys_count":0,"rank":49},{"id":"seq_17","sequence":"NTTNTTRTIFVLLILCCAGCAT","net_charge":-0.12,"muH":0.030807,"plddt":0.5908,"dist_nc":59.03257,"score":-1.285164,"cys_count":3,"rank":50}];
+
+const ORIG_BINS    = [-1.584,-0.909,-0.234,0.441,1.116,1.791,2.466,3.141,3.816,4.491,5.166,5.841,6.516];
+const ORIG_COUNTS  = [23,316,539,323,121,47,19,6,3,0,2,6];
+const GEN_BINS     = [-1.285,-0.818,-0.35,0.118,0.585,1.053,1.52,1.988,2.456,2.923,3.391];
+const GEN_COUNTS   = [4,14,14,7,4,4,2,0,0,1];
+const MARGIN_BINS  = [0.008,0.565,1.122,1.679,2.236,2.793,3.35,3.908,4.465,5.022,5.579];
+const MARGIN_COUNTS= [176,44,27,19,4,2,1,1,2,5];
+
+// =====================================================================
+// PIPELINE
+// =====================================================================
+(function buildPipeline() {
+  var nodes = [
+    {n:'01',name:'Sequence Ingest',out:'1405 sequences'},
+    {n:'02',name:'Structure Prediction',out:'ESMFold / pLDDT'},
+    {n:'03',name:'Membrane Scoring',out:'281 DPO pairs'},
+    {n:'04',name:'DPO Iteration',out:'Aligned ProtGPT2'},
+    {n:'05',name:'Score Generated',out:'50 ranked seqs'},
+    {n:'06',name:'Physics Validation',out:'Top 10 AMBER14'},
+  ];
+  var pl = document.getElementById('pipeline');
+  nodes.forEach(function(nd, i) {
+    var div = document.createElement('div');
+    div.className = 'pnode';
+    div.innerHTML = '<div class="pn-num">NODE ' + nd.n + '</div><div class="pn-name">' + nd.name + '</div><div class="pn-out">' + nd.out + '</div><div class="pn-check">&#10003;</div>';
+    pl.appendChild(div);
+    if (i < nodes.length - 1) {
+      var arr = document.createElement('div');
+      arr.className = 'parr';
+      pl.appendChild(arr);
+    }
+  });
+})();
+
+// =====================================================================
+// STAT CARDS
+// =====================================================================
+(function buildStats() {
+  var data = [
+    {v:'1405',  l:'Original seqs scored',    c:'var(--cyan)'},
+    {v:'281',   l:'DPO preference pairs',     c:'var(--purple)'},
+    {v:'4 / 50',l:'Generated > 90th pct',     c:'var(--green)'},
+    {v:'0.358', l:'Original mean score',      c:'var(--cyan)'},
+    {v:'0.054', l:'Generated mean score',     c:'var(--purple)'},
+    {v:'0.742', l:'Mean DPO margin (kJ)',      c:'var(--orange)'},
+    {v:'-4221', l:'Mean delta-E kJ/mol',      c:'var(--green)'},
+    {v:'0.742', l:'Mean pLDDT generated',     c:'var(--cyan)'},
+    {v:'~2 hr', l:'Runtime on Apple M2',      c:'var(--muted)'},
+  ];
+  var sc = document.getElementById('statCards');
+  data.forEach(function(d) {
+    var el = document.createElement('div');
+    el.className = 'sc';
+    el.style.setProperty('--ac', d.c);
+    el.innerHTML = '<span class="sv">' + d.v + '</span><span class="sl">' + d.l + '</span>';
+    sc.appendChild(el);
+  });
+})();
+
+// =====================================================================
+// CHART SETUP
+// =====================================================================
+Chart.defaults.color = '#4a5f7a';
+Chart.defaults.font.family = 'IBM Plex Mono';
+Chart.defaults.font.size = 9;
+var GRID = '#172035';
+var TT = {
+  backgroundColor:'#08101e', borderColor:'#1e2d47', borderWidth:1,
+  titleColor:'#dce8f5', bodyColor:'#4a5f7a',
+  bodyFont:{family:'IBM Plex Mono',size:9}, padding:10
+};
+function ax(title) {
+  return {
+    ticks:{color:'#4a5f7a',font:{family:'IBM Plex Mono',size:8}},
+    grid:{color:GRID},
+    title: title ? {display:true,text:title,color:'#4a5f7a',font:{size:9}} : {display:false}
+  };
+}
+
+// =====================================================================
+// ORIG HISTOGRAM
+// =====================================================================
+new Chart(document.getElementById('origHistChart'), {
+  type:'bar',
+  data:{
+    labels: ORIG_BINS.slice(0,-1).map(function(b){return b.toFixed(2);}),
+    datasets:[{
+      data: ORIG_COUNTS,
+      backgroundColor: ORIG_COUNTS.map(function(_,i){
+        return i>=9?'rgba(0,212,255,0.85)':i>=6?'rgba(0,212,255,0.45)':'rgba(0,212,255,0.15)';
+      }),
+      borderColor:'rgba(0,212,255,0.3)', borderWidth:1
+    }]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:TT},
+    scales:{x:ax('Composite Score'),y:ax('Count')}}
+});
+
+// =====================================================================
+// GEN HISTOGRAM
+// =====================================================================
+new Chart(document.getElementById('genHistChart'), {
+  type:'bar',
+  data:{
+    labels: GEN_BINS.slice(0,-1).map(function(b){return b.toFixed(2);}),
+    datasets:[{
+      data: GEN_COUNTS,
+      backgroundColor: GEN_COUNTS.map(function(_,i){
+        return i>=7?'rgba(179,136,255,0.85)':i>=4?'rgba(179,136,255,0.45)':'rgba(179,136,255,0.15)';
+      }),
+      borderColor:'rgba(179,136,255,0.3)', borderWidth:1
+    }]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:TT},
+    scales:{x:ax('Composite Score'),y:ax('Count')}}
+});
+
+// =====================================================================
+// PHYS MAP
+// =====================================================================
+var PHYS_MAP = {};
+PHYS.forEach(function(p){ PHYS_MAP[p.id] = p; });
+
+// =====================================================================
+// SCATTER pLDDT vs Score
+// =====================================================================
+new Chart(document.getElementById('scatterPlddt'), {
+  type:'scatter',
+  data:{datasets:[{
+    data: ALL50.map(function(d){return {x:d.score,y:d.plddt,id:d.id,seq:d.sequence,cys:d.cys_count};}),
+    backgroundColor: ALL50.map(function(d){
+      if(PHYS_MAP[d.id]) return 'rgba(0,230,118,0.85)';
+      if(d.cys_count>=2) return 'rgba(255,202,40,0.7)';
+      return 'rgba(0,212,255,0.3)';
+    }),
+    pointRadius: ALL50.map(function(d){return PHYS_MAP[d.id]?7:4;}),
+    pointHoverRadius:9
+  }]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:function(ctx){
+      var r=ctx.raw; var lines=[r.id, r.seq.substring(0,20)+(r.seq.length>20?'...':''),
+        'Score: '+r.x.toFixed(3),'pLDDT: '+r.y.toFixed(3),'Cys: '+r.cys];
+      var p=PHYS_MAP[r.id]; if(p) lines.push('Physics rank: '+p.rank_physics);
+      return lines;
+    }}}},
+    scales:{x:ax('Proxy Score'),y:ax('pLDDT')}}
+});
+
+// =====================================================================
+// SCATTER muH vs Charge
+// =====================================================================
+new Chart(document.getElementById('scatterMuH'), {
+  type:'scatter',
+  data:{datasets:[{
+    data: ALL50.map(function(d){return {x:d.net_charge,y:d.muH,id:d.id,cys:d.cys_count,score:d.score};}),
+    backgroundColor: ALL50.map(function(d){
+      if(d.cys_count>=4) return 'rgba(255,202,40,0.85)';
+      if(d.muH>0.5) return 'rgba(0,212,255,0.75)';
+      return 'rgba(0,212,255,0.2)';
+    }),
+    pointRadius: ALL50.map(function(d){return d.cys_count>=2?6:4;}),
+    pointHoverRadius:8
+  }]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:function(ctx){
+      var r=ctx.raw;
+      return [r.id,'muH: '+r.y.toFixed(3),'Charge: '+r.x.toFixed(3),'Cys: '+r.cys,'Score: '+r.score.toFixed(3)];
+    }}}},
+    scales:{x:ax('Net Charge'),y:ax('Hydrophobic Moment (muH)')}}
+});
+
+// =====================================================================
+// ENERGY BAR
+// =====================================================================
+var physSorted = PHYS.slice().sort(function(a,b){return a.e_final-b.e_final;});
+new Chart(document.getElementById('energyChart'), {
+  type:'bar',
+  data:{
+    labels: physSorted.map(function(p){return p.id;}),
+    datasets:[
+      {label:'E_final (kJ/mol)', data:physSorted.map(function(p){return p.e_final;}),
+       backgroundColor:'rgba(0,212,255,0.55)', borderColor:'rgba(0,212,255,0.8)', borderWidth:1},
+      {label:'Delta-E (kJ/mol)', data:physSorted.map(function(p){return p.delta_e;}),
+       backgroundColor:'rgba(0,230,118,0.35)', borderColor:'rgba(0,230,118,0.65)', borderWidth:1}
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+    plugins:{legend:{labels:{color:'#4a5f7a',font:{family:'IBM Plex Mono',size:8}}},tooltip:TT},
+    scales:{x:ax('Energy (kJ/mol)'),y:{ticks:{color:'#4a5f7a',font:{family:'IBM Plex Mono',size:8}},grid:{color:GRID}}}}
+});
+
+// =====================================================================
+// RANK AGREEMENT
+// =====================================================================
+var agree=[], diverge=[];
+PHYS.forEach(function(p){
+  var pt={x:p.rank_proxy,y:p.rank_physics,id:p.id};
+  (Math.abs(p.rank_proxy-p.rank_physics)<=2?agree:diverge).push(pt);
+});
+new Chart(document.getElementById('rankChart'), {
+  type:'scatter',
+  data:{datasets:[
+    {label:'Agreement (d-rank<=2)', data:agree,   backgroundColor:'rgba(0,230,118,0.85)', pointRadius:7},
+    {label:'Divergent (d-rank>2)',  data:diverge, backgroundColor:'rgba(255,112,67,0.75)', pointRadius:7}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{labels:{color:'#4a5f7a',font:{family:'IBM Plex Mono',size:8}}},
+      tooltip:{...TT,callbacks:{label:function(ctx){
+        return [ctx.raw.id,'Proxy: '+ctx.raw.x,'Physics: '+ctx.raw.y];
+      }}}},
+    scales:{x:{min:0,max:11,...ax('Proxy Rank')},y:{min:0,max:11,...ax('Physics Rank')}}}
+});
+
+// =====================================================================
+// DPO MARGIN HISTOGRAM
+// =====================================================================
+new Chart(document.getElementById('marginChart'), {
+  type:'bar',
+  data:{
+    labels: MARGIN_BINS.slice(0,-1).map(function(b){return b.toFixed(2);}),
+    datasets:[{
+      data: MARGIN_COUNTS,
+      backgroundColor: MARGIN_COUNTS.map(function(_,i){
+        return i===0?'rgba(179,136,255,0.7)':i<=2?'rgba(179,136,255,0.4)':'rgba(179,136,255,0.2)';
+      }),
+      borderColor:'rgba(179,136,255,0.4)', borderWidth:1
+    }]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:TT},
+    scales:{x:ax('Score Margin (kJ)'),y:ax('Pair Count')}}
+});
+
+// =====================================================================
+// dist_nc HISTOGRAM
+// =====================================================================
+var distEdges = [0,8,14,18,22,26,30,35,40,45,52,65];
+var distCounts = distEdges.slice(0,-1).map(function(lo,i){
+  return ALL50.filter(function(d){return d.dist_nc>=lo && d.dist_nc<distEdges[i+1];}).length;
+});
+new Chart(document.getElementById('distChart'), {
+  type:'bar',
+  data:{
+    labels: distEdges.slice(0,-1).map(function(lo,i){return lo+'-'+distEdges[i+1]+'A';}),
+    datasets:[{
+      data: distCounts,
+      backgroundColor: distEdges.slice(0,-1).map(function(lo){
+        return lo<14?'rgba(0,230,118,0.8)':lo<22?'rgba(0,230,118,0.4)':'rgba(0,212,255,0.15)';
+      }),
+      borderColor: distEdges.slice(0,-1).map(function(lo){
+        return lo<14?'rgba(0,230,118,0.9)':'rgba(0,212,255,0.25)';
+      }),
+      borderWidth:1
+    }]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:function(ctx){return ctx.parsed.y+' sequences';}}}},
+    scales:{
+      x:{ticks:{color:'#4a5f7a',maxRotation:45,font:{family:'IBM Plex Mono',size:8}},grid:{color:GRID},
+         title:{display:true,text:'N-to-C Distance (Angstrom) — lower = more compact fold',color:'#4a5f7a',font:{size:9}}},
+      y:ax('Count')
+    }}
+});
+
+// =====================================================================
+// TABLE
+// =====================================================================
+function colorSeq(seq) {
+  return seq.split('').map(function(aa){return '<span class="aa-'+aa+'">'+aa+'</span>';}).join('');
+}
+function scoreBar(s) {
+  var pct = Math.max(0,Math.min(100,((s+1.3)/(3.4+1.3))*100));
+  var col = s>1?'var(--cyan)':s>0?'rgba(0,212,255,0.45)':'var(--muted2)';
+  return '<div class="sbar"><span class="sbar-num">'+s.toFixed(3)+'</span><div class="sbar-track"><div class="sbar-fill" style="width:'+pct+'%;background:'+col+'"></div></div></div>';
+}
+function rkChip(r) {
+  var cls = r===1?'rk-1':r===2?'rk-2':r===3?'rk-3':'rk-o';
+  return '<span class="rk '+cls+'">'+r+'</span>';
+}
+
+var tbody = document.getElementById('tableBody');
+ALL50.forEach(function(row) {
+  var p = PHYS_MAP[row.id];
+  var cysBadge   = row.cys_count>=2 ? '<span class="badge b-cys">CYS&#215;'+row.cys_count+'</span>' : '';
+  var agreeBadge = (p && Math.abs(p.rank_proxy-p.rank_physics)<=2) ? '<span class="badge b-agree">agree</span>' : '';
+  var divBadge   = (p && Math.abs(p.rank_proxy-p.rank_physics)>2)  ? '<span class="badge b-div">diverged</span>' : '';
+  var topBadge   = (p && p.rank_physics<=3) ? '<span class="badge b-top">&#9733;top-3</span>' : '';
+  var physCell   = p
+    ? rkChip(p.rank_physics)+' <span style="color:var(--muted);font-family:var(--mono);font-size:0.6rem">'+p.e_final.toFixed(0)+'</span>'
+    : '<span style="color:var(--muted2)">-</span>';
+  var plddt_c = row.plddt>=0.8?'var(--green)':row.plddt>=0.7?'var(--text)':'var(--muted)';
+  var dist_c  = row.dist_nc<20?'var(--green)':'var(--text)';
+  var chg_c   = row.net_charge>0.1?'#64b5f6':row.net_charge<0?'#ef9a9a':'var(--text)';
+
+  var tr = document.createElement('tr');
+  tr.innerHTML =
+    '<td>'+rkChip(row.rank)+'</td>'+
+    '<td style="font-family:var(--mono);font-size:0.58rem;color:var(--muted)">'+row.id+'</td>'+
+    '<td><span class="aas">'+colorSeq(row.sequence)+'</span>'+cysBadge+agreeBadge+divBadge+topBadge+'</td>'+
+    '<td>'+scoreBar(row.score)+'</td>'+
+    '<td style="font-family:var(--mono);color:'+plddt_c+'">'+row.plddt.toFixed(3)+'</td>'+
+    '<td style="font-family:var(--mono);color:'+dist_c+'">'+row.dist_nc.toFixed(1)+'</td>'+
+    '<td style="font-family:var(--mono)">'+row.muH.toFixed(3)+'</td>'+
+    '<td style="font-family:var(--mono);color:'+chg_c+'">'+row.net_charge.toFixed(3)+'</td>'+
+    '<td style="font-family:var(--mono)">'+row.cys_count+'</td>'+
+    '<td>'+physCell+'</td>';
+  tbody.appendChild(tr);
+});
+</script>
+</body>
+</html>

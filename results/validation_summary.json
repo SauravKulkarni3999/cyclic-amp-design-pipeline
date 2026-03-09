@@ -1,0 +1,11 @@
+{
+  "n_validated": 10,
+  "n_total": 10,
+  "spearman_rho": 0.1636,
+  "spearman_pval": 0.6515,
+  "interpretation": "Weak positive trend \u2014 limited proxy validation",
+  "forcefield": "AMBER14 + GBn2 implicit solvent",
+  "best_proxy": "seq_39",
+  "best_physics": "seq_0",
+  "mean_delta_e": -4221.38
+}
