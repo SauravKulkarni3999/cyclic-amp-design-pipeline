@@ -1,0 +1,17 @@
+name = "Sequence Ingest"
+description = "Ingest sequence data into the database"
+inputs = ["sequences.csv"]
+outputs = ["output_files/ingested_sequences.csv"]
+
+
+[container]
+image = "python:3.11-slim"
+
+[scripts]
+install = "pip install --upgrade pip && pip install pandas peptides"
+run = "run.sh"
+
+[params.data_paths]
+type = "string"
+default = '{"input":"sequences.csv", "output":"output_files/ingested_sequences.csv"}'
+hint = "JSON string containing input and output file paths"
