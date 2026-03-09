@@ -80,14 +80,16 @@ The composite proxy score combines four mechanistically grounded features:
 
 - **Base model:** `nferruz/ProtGPT2`
 - **Training data:** 281 preference pairs generated from biophysics scoring of 1405 sequences
-- **Pair construction:** For each winner sequence, a random loser is sampled from sequences scoring below the median
+- **Pair construction:** Closest-margin negative sampling — each winner is paired with the nearest-scoring loser below the median. In this dataset, the margin distribution collapsed to a single reject anchor (`seq_1104`), which limits the diversity of the preference signal. This is a known limitation addressed in the extensions roadmap below.
 - **Framework:** HuggingFace TRL `DPOTrainer`
-- **Hardware:** CPU (Apple M4 Pro, 25.8GB RAM)
+- **Hardware:** Apple M4 Pro (CPU mode, 25.8GB RAM)
 - **Training time:** ~90 minutes for 1405-sequence dataset
-- **Key hyperparameters:** `num_train_epochs=1`, `gradient_accumulation_steps=4`, `bf16=False`, `fp16=False`
+- **Key hyperparameters:** `num_train_epochs=2`, `gradient_accumulation_steps=4`, `bf16=False`, `fp16=False`
 - **Final loss:** ~2.8e-05 (converged), reward margins ~10.0 kJ
 
 The reference model is held on CPU throughout training to reduce memory pressure by ~1.5GB — only the policy model uses the primary device.
+
+**Note on generated sequence quality:** At this training scale (281 pairs, 2 epochs), the DPO alignment signal was insufficient to fully shift ProtGPT2's generative distribution into AMP-like sequence space. The generated sequences reflect ProtGPT2's general protein prior more than targeted antimicrobial properties. The primary contribution of this pipeline is the *framework design* — the alignment loop, scoring architecture, and validation protocol — rather than the specific candidate sequences from this initial run. Scaling the preference dataset (more sequences, diverse reject anchors) and increasing training epochs are the direct remedies outlined in the extensions section.
 
 ---
 
@@ -95,7 +97,7 @@ The reference model is held on CPU throughout training to reduce memory pressure
 
 Top 10 candidates from Node 05 are validated using OpenMM with AMBER14 force field and GBn2 implicit solvent:
 
-- **Protocol:** Energy minimization → 500-step MD equilibration → final energy evaluation
+- **Protocol:** Energy minimization → 500-step convergence → final energy evaluation
 - **Metrics:** E_final (absolute energy), ΔE (relaxation energy), RMSD from initial structure
 - **Implicit solvent rationale:** Appropriate for ranking and filtering at this pipeline stage. Explicit solvent would improve accuracy but is computationally intractable at this throughput on consumer hardware.
 
@@ -103,7 +105,7 @@ Top 10 candidates from Node 05 are validated using OpenMM with AMBER14 force fie
 
 ## Results (Full 1405-Sequence Run)
 
-**Top 3 candidates by physics validation:**
+**Top 3 candidates by physics validation (lowest E_final):**
 
 | Physics Rank | ID | Sequence | E_final (kJ/mol) | ΔE (kJ/mol) | pLDDT | Cys |
 |---|---|---|---|---|---|---|
@@ -123,6 +125,8 @@ Physics rank 6, but ΔE = **-6449.9 kJ/mol** — the largest relaxation energy i
 - Reward margins: 0.008 – 5.58 kJ (mean 0.74 kJ)
 - Training loss converged to ~2.8e-05 by epoch 2
 - 4/50 generated sequences exceeded the original dataset's 90th percentile score
+
+**Spearman rank correlation (proxy vs. physics):** ρ = 0.164, p = 0.65. At n=10, statistical significance requires ρ > 0.63 for p < 0.05. This is a sample-size constraint rather than evidence against the scoring framework. The correlation direction is positive, and expanding the validated set is a straightforward extension.
 
 **Runtime:** ~2 hours on Apple M4 Pro (consumer CPU). Estimated 15–20 minutes on A100 GPU for equivalent dataset.
 
@@ -204,7 +208,7 @@ cyclic-amp-design-pipeline/
 │   ├── predict_esmfold.py
 │   ├── prepare_fasta.py
 │   ├── pre_run.sh
-│   ├──post_run.sh
+│   ├── post_run.sh
 │   └── run.sh
 ├── 03-membrane-scoring/
 │   ├── .chiral/job.toml
@@ -227,6 +231,7 @@ cyclic-amp-design-pipeline/
 │   └── main.py
 ├── 06-physics-validation/
 |   ├── .chiral/job.toml
+|   ├── Dockerfile
 |   ├── run.sh
 |   └── main.py
 ├── results/
@@ -255,17 +260,21 @@ For a ranking and filtering stage operating on 10 candidates, AMBER14/GBn2 impli
 **Why equal weighting in the composite score?**  
 Equal weighting is the maximum-entropy assumption in the absence of experimental MIC data for calibration. The intended extension is to regress score weights against held-out MIC values from APD3 or DBAASP once experimental data is available.
 
+**Why closest-margin negative sampling for DPO pairs?**  
+Closest-margin pairing provides the most informative preference signal in theory — the model learns from near-decision-boundary contrasts rather than trivially separable pairs. In practice, this collapsed to a single reject anchor in the current dataset due to the score distribution shape. The extensions section addresses this with diversified negative sampling strategies.
+
 ---
 
 ## Extending the Pipeline
 
 Natural extensions in order of priority:
 
-1. **Hard negative DPO pairs** — replace random loser sampling with closest-score loser for stronger preference signal
-2. **AfCycDesign integration** — replace ESMFold in Node 02 with AlphaFold2 + cyclic positional encoding for true cyclic topology prediction
-3. **External validation** — run top candidates through APD3/DBAASP for independent activity prediction
-4. **Explicit solvent MD** — upgrade Node 06 to explicit solvent for top 3 candidates
-5. **Learned score weights** — calibrate composite score weights against experimental MIC data
+1. **Diversified DPO negative sampling** — replace closest-margin single-anchor pairing with stratified sampling across score bins, ensuring each winner sees a unique reject. This directly addresses the preference signal diversity limitation observed in the current run.
+2. **Scaled DPO training** — increase to 5–10 epochs with learning rate warmup and larger preference datasets (>1000 pairs from expanded AMP databases like DBAASP or APD3) to strengthen the alignment signal.
+3. **AfCycDesign integration** — replace ESMFold in Node 02 with AlphaFold2 + cyclic positional encoding for true cyclic topology prediction.
+4. **External validation** — run top candidates through APD3/DBAASP for independent activity prediction, or integrate CAMPR4 API for antimicrobial probability scoring.
+5. **Explicit solvent MD** — upgrade Node 06 to explicit solvent for top 3 candidates.
+6. **Learned score weights** — calibrate composite score weights against experimental MIC data.
 
 ---
 
