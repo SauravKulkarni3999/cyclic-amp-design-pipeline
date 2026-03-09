@@ -230,7 +230,6 @@ cyclic-amp-project/
 │   ├── physics_validation.csv
 │   ├── scored_generated.csv
 │   └── visualization.html
-├── requirements.txt
 └── README.md
 ```
 
