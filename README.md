@@ -150,8 +150,8 @@ Open directly in any browser — no server required.
 
 ```bash
 # Clone the repository
-git clone https://github.com/SauravKulkarni3999/cyclic-amp-pipeline
-cd cyclic-amp-pipeline
+git clone https://github.com/SauravKulkarni3999/cyclic-amp-design-pipeline
+cd cyclic-amp-design-pipeline
 
 # Set Silva workflow directory
 export SILVA_WORKFLOW_HOME=$(pwd)/workflows
@@ -164,7 +164,7 @@ silva
 
 1. Open Silva in your browser
 2. Navigate to **Workflows** tab
-3. Select `cyclic_amp_project`
+3. Select `cyclic_amp_design_pipeline`
 4. Click **Run**
 5. All 6 nodes complete with green checkmarks in ~2 hours
 
@@ -184,7 +184,7 @@ results/
 ## Repository Structure
 
 ```
-cyclic-amp-project/
+cyclic-amp-design-pipeline/
 ├── .chiral
 |   └── workflow.toml
 ├── 01-sequence-ingest/
@@ -280,7 +280,7 @@ If you use this pipeline in your work:
   title     = {Cyclic AMP Discovery Pipeline: DPO-Aligned Generative Design with Biophysics Scoring},
   year      = {2026},
   publisher = {GitHub},
-  url       = {https://github.com/SauravKulkarni3999/cyclic-amp-pipeline}
+  url       = {https://github.com/SauravKulkarni3999/cyclic-amp-design-pipeline}
 }
 ```
 
