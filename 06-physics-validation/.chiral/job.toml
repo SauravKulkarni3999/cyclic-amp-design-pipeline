@@ -1,0 +1,21 @@
+name = "Physics Validation (OpenMM)"
+description = "Runs AMBER14 + GBn2 implicit solvent energy minimisation on top 10 DPO-generated candidates. Computes Spearman correlation between proxy membrane score and physics rank to validate the scoring framework."
+depends_on = ["05-structure-scoring-generated"]
+inputs = ["scored_generated.csv", "generated_pdbs/"]
+outputs = ["outputs/physics_validation.csv", "outputs/validation_summary.json", "outputs/relaxed_pdbs/"]
+
+[container]
+image = "validation:test"
+
+[scripts]
+run = "run.sh"
+
+[params.top_n]
+type = "string"
+default = "10"
+hint = "Number of top-scoring sequences to validate. Max 10 recommended for runtime."
+
+[params.max_iterations]
+type = "string"
+default = "500"
+hint = "Maximum minimisation steps per sequence. 500 is sufficient for convergence."
