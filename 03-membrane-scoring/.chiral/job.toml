@@ -1,0 +1,25 @@
+name = "Membrane Disruption Scoring & DPO Ranking."
+description = "Calculates 3D Hydrophobic moment and lipid affinity scores for DPO ranking and generating DPO training triplets."
+depends_on = ["02-structure-prediction"]
+inputs = ["prediction_results/*.pdb"]
+outputs = ["scoring_results.csv", "preferences.jsonl"]
+
+[container]
+image = "python:3.10-slim-bullseye"
+
+[scripts]
+pre = "pre_run.sh"
+run = "run_scoring.sh"
+post = "post_run.sh"
+
+[params.scoring_config]
+type = "string"
+default = '''
+{
+    "target_organism": "E_coli",
+    "anionic_fraction": 0.25,
+    "hydrophobic_moment_weight": 5.0,
+    "cyclicity_penalty_threshold": 4.5
+}
+'''
+hint = "Configuration for membrane-specific rewards and cyclic constraints."
