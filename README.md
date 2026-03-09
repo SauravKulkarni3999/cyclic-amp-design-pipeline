@@ -1,6 +1,12 @@
 # Cyclic AMP Discovery Pipeline
 ### DPO-Aligned Generative Design with Biophysics Scoring and Physics Validation
 
+---
+
+This pipeline uses AI to 'teach' a discovery engine how to design safer, more effective antimicrobial medicines before a single experiment is ever run in a lab.
+
+--- 
+
 [![Silva](https://img.shields.io/badge/runs%20on-Silva-00e5ff)](https://github.com/chiral-data/silva)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![Challenge](https://img.shields.io/badge/Chiral%20Blueprint%20Build%20Challenge-2026-7c4dff)](https://chiral.one)
