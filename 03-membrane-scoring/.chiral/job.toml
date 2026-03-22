@@ -5,7 +5,7 @@ inputs = ["prediction_results/*.pdb"]
 outputs = ["scoring_results.csv", "preferences.jsonl"]
 
 [container]
-image = "python:3.10-slim-bullseye"
+image = "membrane-scoring:latest"
 
 [scripts]
 pre = "pre_run.sh"

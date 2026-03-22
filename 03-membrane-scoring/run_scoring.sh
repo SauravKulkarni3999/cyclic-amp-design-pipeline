@@ -1,8 +1,6 @@
 #!/bin/bash
 
-
-# Install dependencies if not in container
-pip install biopython pandas numpy
+set -e
 
 # Execute main script
 
