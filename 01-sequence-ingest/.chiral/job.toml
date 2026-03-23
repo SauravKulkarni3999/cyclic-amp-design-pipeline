@@ -5,10 +5,9 @@ outputs = ["output_files/ingested_sequences.csv"]
 
 
 [container]
-image = "python:3.11-slim"
+image = "sequence-ingest:latest"
 
 [scripts]
-install = "pip install --upgrade pip && pip install pandas peptides"
 run = "run.sh"
 
 [params.data_paths]
