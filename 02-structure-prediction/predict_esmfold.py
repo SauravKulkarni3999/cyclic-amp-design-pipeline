@@ -23,7 +23,19 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=local)
     model = EsmForProteinFolding.from_pretrained(model_path, local_files_only=local)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # ESMFold FP32 requires ~13GB VRAM (8GB model + overhead during transfer); fall back to CPU if insufficient
+    MIN_GPU_MEM_GB = 13
+    if torch.cuda.is_available():
+        gpu_mem_gb = torch.cuda.get_device_properties(0).total_memory / (1024 ** 3)
+        free_mem_gb = (torch.cuda.get_device_properties(0).total_memory - torch.cuda.memory_reserved(0)) / (1024 ** 3)
+        print(f"GPU: {torch.cuda.get_device_name(0)}, total: {gpu_mem_gb:.1f}GB, free: {free_mem_gb:.1f}GB")
+        if free_mem_gb >= MIN_GPU_MEM_GB:
+            device = torch.device("cuda")
+        else:
+            print(f"GPU memory ({free_mem_gb:.1f}GB free) < {MIN_GPU_MEM_GB}GB required, falling back to CPU")
+            device = torch.device("cpu")
+    else:
+        device = torch.device("cpu")
     print(f"Using device: {device}")
 
     model.to(device)

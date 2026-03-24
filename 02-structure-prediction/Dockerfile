@@ -7,8 +7,10 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# CPU-only PyTorch — sufficient for ESMFold inference on Mac
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+# PyTorch with CUDA 12.4 support — falls back to CPU when no GPU is available
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV CUDA_VERSION=12.4
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu124
 
 RUN pip install --no-cache-dir \
     transformers \
