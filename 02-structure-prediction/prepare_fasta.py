@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
     default_config = '{"limit": 0}'
     # Get config from Silva environment
-    config_json = sys.argv[1] if len(sys.argv) > 1 else os.getenv('PREDICTION_CONFIG') or default_config
+    config_json = sys.argv[1] if len(sys.argv) > 1 else os.getenv('PARAM_PREDICTION_CONFIG') or default_config
 
     try:
         config = json.loads(config_json)

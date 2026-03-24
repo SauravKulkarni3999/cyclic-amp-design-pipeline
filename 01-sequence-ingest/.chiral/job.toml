@@ -1,7 +1,7 @@
 name = "Sequence Ingest"
 description = "Ingest sequence data into the database"
 inputs = ["sequences.csv"]
-outputs = ["output_files/ingested_sequences.csv"]
+outputs = ["ingested_sequences.csv"]
 
 
 [container]

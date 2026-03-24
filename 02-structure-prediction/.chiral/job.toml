@@ -1,6 +1,5 @@
 name = "Structure Prediction (ESMFold)"
 description = "Predict 3D structure using ESMFold"
-depends_on = ["01-sequence-ingest"]
 inputs = ["ingested_sequences.csv"]
 outputs = ["outputs/prediction_results/*.pdb"]
 
@@ -15,7 +14,7 @@ post = "post_run.sh"
 
 [params.prediction_config]
 type = "string"
-default = '{"limit": 0}'
+default = '{"limit": 10}'
 hint = "Number of sequences to process for testing (0 means all sequences)."
 
 
