@@ -10,8 +10,8 @@ echo "Contents of workspace:"
 ls "$WORKSPACE_ROOT" 2>/dev/null || echo "  WARNING: $WORKSPACE_ROOT not found"
 
 # Define input/output paths
-NODE_01_OUT="$WORKSPACE_ROOT/01-sequence-ingest/output_files/ingested_sequences.csv"
-NODE_03_OUT="$WORKSPACE_ROOT/03-membrane-scoring/preferences.jsonl"
+NODE_01_OUT="inputs/ingested_sequences.csv"
+NODE_03_OUT="inputs/preferences.jsonl"
 OUTPUT_DIR="outputs"
 
 # Verify input files exist before running

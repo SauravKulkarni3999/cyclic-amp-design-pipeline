@@ -51,8 +51,8 @@ if __name__ == "__main__":
     if config_json:
         try:
             config = json.loads(config_json)
-            in_file = config.get('input', 'sequences.csv')
-            out_file = config.get('output', 'output_files/ingested_sequences.csv')
+            in_file = config.get('input', 'inputs/sequences.csv')
+            out_file = config.get('output', 'outputs/ingested_sequences.csv')
             process_sequences(in_file, out_file)
         except json.JSONDecodeError as e:
             print(f"Error parsing JSON configuration: {e}")

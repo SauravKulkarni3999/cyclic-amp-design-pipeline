@@ -1,8 +1,14 @@
 #!/bin/bash
 set -e
 
+# Fix UID mismatch: Silva may run as a UID not in /etc/passwd
+# getpass.getuser() checks these env vars before falling back to pwd.getpwuid()
+export LOGNAME="${LOGNAME:-silva}"
+export HOME="${HOME:-/tmp}"
+export HF_HOME="/tmp/hf_cache"
+
 echo "Extracting sequences for prediction..."
-python prepare_fasta.py 
+python prepare_fasta.py
 
 mkdir -p outputs/prediction_results/
 

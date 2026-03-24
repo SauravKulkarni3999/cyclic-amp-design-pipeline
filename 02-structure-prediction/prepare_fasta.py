@@ -32,7 +32,7 @@ if __name__ == "__main__":
     try:
         config = json.loads(config_json)
         limit = int(config.get('limit', 0))
-        input_csv = config.get('input_csv', 'ingested_sequences.csv')
+        input_csv = config.get('input_csv', 'inputs/ingested_sequences.csv')
         output_dir = config.get('output', 'fasta_inputs')
 
         # convert CSV to FASTA
