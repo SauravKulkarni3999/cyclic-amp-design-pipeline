@@ -63,15 +63,16 @@ def main(seq_csv_path, pref_path, output_dir):
     train_dataset = Dataset.from_list(dpo_pairs)
 
     print("Loading model and tokenizer...")
-    model_name = "nferruz/ProtGPT2"
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model_name = os.environ.get("PROTGPT2_DIR", "nferruz/ProtGPT2")
+    local = os.path.isdir(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(model_name, local_files_only=local)
     tokenizer.pad_token = tokenizer.eos_token
 
     dtype = torch.bfloat16 if device in ("cuda", "mps") else torch.float32
 
     # Policy model on MPS/GPU
     model = GPT2LMHeadModel.from_pretrained(
-        model_name, torch_dtype=dtype, low_cpu_mem_usage=True
+        model_name, torch_dtype=dtype, low_cpu_mem_usage=True, local_files_only=local
     ).to(device)
     model.gradient_checkpointing_enable()
     log_memory("After policy model load")
@@ -79,7 +80,7 @@ def main(seq_csv_path, pref_path, output_dir):
     # Reference model on CPU — only does forward passes, doesn't need GPU
     # This saves ~1.5GB of MPS memory
     ref_model = GPT2LMHeadModel.from_pretrained(
-        model_name, torch_dtype=torch.float32, low_cpu_mem_usage=True
+        model_name, torch_dtype=torch.float32, low_cpu_mem_usage=True, local_files_only=local
     )  # intentionally no .to(device) — stays on CPU
     ref_model.eval()
     for param in ref_model.parameters():

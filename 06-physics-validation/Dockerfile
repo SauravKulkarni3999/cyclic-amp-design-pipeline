@@ -2,6 +2,9 @@ FROM python:3.10-slim-bullseye
 
 WORKDIR /workspace
 
+ENV LOGNAME=silva
+ENV HOME=/tmp
+
 
 RUN pip install --no-cache-dir \
     openmm \
