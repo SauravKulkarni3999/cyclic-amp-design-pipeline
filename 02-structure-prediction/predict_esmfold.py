@@ -18,8 +18,10 @@ def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     print("Loading ESMFold model and tokenizer...")
-    tokenizer = AutoTokenizer.from_pretrained(os.environ.get("ESMFOLD_DIR", "facebook/esmfold_v1"))
-    model = EsmForProteinFolding.from_pretrained(os.environ.get("ESMFOLD_DIR", "facebook/esmfold_v1"))
+    model_path = os.environ.get("ESMFOLD_DIR", "facebook/esmfold_v1")
+    local = os.path.isdir(model_path)
+    tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=local)
+    model = EsmForProteinFolding.from_pretrained(model_path, local_files_only=local)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
