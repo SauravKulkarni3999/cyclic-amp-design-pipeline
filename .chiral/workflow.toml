@@ -8,8 +8,8 @@ description="A DPO-aligned discovery pipeline for selective cyclic antmicrobial 
 # Node 03 (membrane scoring) requires output from Node 02 (structure prediction)
 03-membrane-scoring = ["02-structure-prediction"]
 
-# Node 04 (dpo iteration) requires output from Node 03 (membrane scoring)
-04-dpo-iteration = ["03-membrane-scoring"]
+# Node 04 (dpo iteration) requires output from Node 03 (membrane scoring) and Node 01 (ingestion)
+04-dpo-iteration = ["03-membrane-scoring", "01-sequence-ingest"]
 
 # Node 05 (structure & scoring generation) requires output from Node 04 (dpo iteration) 
 05-structure-scoring-generated = ["04-dpo-iteration"]

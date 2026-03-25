@@ -137,9 +137,9 @@ def main():
     config = json.loads(args.config) # Load the configuration
 
     # Path logic for silva
-    pdb_files = glob.glob("prediction_results/*.pdb")
+    pdb_files = glob.glob("inputs/prediction_results/*.pdb")
     if not pdb_files:
-        pdb_files = glob.glob("*.pdb")
+        pdb_files = glob.glob("inputs/*.pdb")
     if not pdb_files:
         print("WARNING: No PDB files found anywhere. Listing workspace:")
         for item in os.listdir("."):

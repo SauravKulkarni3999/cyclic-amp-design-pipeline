@@ -1,6 +1,5 @@
 name = "Structure Scoring (Generated)"
 description = "Predicts structures and scores 50 DPO-generated sequences using cached ESMFold. Outputs scored_generated.csv for visualization."
-depends_on = ["04-dpo-iteration"]
 inputs = ["optimized_sequences.csv"]
 outputs = ["outputs/scored_generated.csv", "outputs/generated_pdbs/"]
 

@@ -1,6 +1,5 @@
 name = "Membrane Disruption Scoring & DPO Ranking."
 description = "Calculates 3D Hydrophobic moment and lipid affinity scores for DPO ranking and generating DPO training triplets."
-depends_on = ["02-structure-prediction"]
 inputs = ["prediction_results/*.pdb"]
 outputs = ["scoring_results.csv", "preferences.jsonl"]
 

@@ -1,7 +1,6 @@
 name = "DPO Alignment"
 description = "Aligns ProtGPT2 with physical constraints using DPO."
-depends_on = ["03-membrane-scoring", "01-sequence-ingest"]
-inputs = ["03-membrane-scoring/preferences.jsonl", "01-sequence-ingest/output_files/ingested_sequences.csv"]
+inputs = ["preferences.jsonl", "ingested_sequences.csv"]
 outputs = ["outputs/aligned_model", "outputs/optimized_sequences.csv"]
 
 [container]

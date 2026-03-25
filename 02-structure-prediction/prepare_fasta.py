@@ -27,12 +27,12 @@ if __name__ == "__main__":
 
     default_config = '{"limit": 0}'
     # Get config from Silva environment
-    config_json = sys.argv[1] if len(sys.argv) > 1 else os.getenv('PREDICTION_CONFIG') or default_config
+    config_json = sys.argv[1] if len(sys.argv) > 1 else os.getenv('PARAM_PREDICTION_CONFIG') or default_config
 
     try:
         config = json.loads(config_json)
         limit = int(config.get('limit', 0))
-        input_csv = config.get('input_csv', 'ingested_sequences.csv')
+        input_csv = config.get('input_csv', 'inputs/ingested_sequences.csv')
         output_dir = config.get('output', 'fasta_inputs')
 
         # convert CSV to FASTA
